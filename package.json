@@ -3,6 +3,11 @@
   "displayName": "Scribe",
   "description": "Let your Github contribution graph reflect how long you code. Scribe is a VS Code extension that helps track your coding activity",
   "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/emeleonufavour/scribe.git"
+  },
+  "icon": "scribe.png",
   "publisher": "favouremeleonu",
   "engines": {
     "vscode": "^1.96.0"
