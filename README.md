@@ -30,14 +30,17 @@ This will install the extension in your local VS Code environment
 
 ## How to Use
 
-1. Open the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`).
-2. Search for `Activate Scribe` to activate extension.
-3. Search for `Restart Scribe` to restart extension.
-4. Search for `Disable Scribe` to disable extension.
-5. Customize settings in `settings.json` or through the UI:
-   ```json
-   "scribe.timerDurationMinutes": 30
-   ```
+1.  Open the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`).
+2.  Search for `Activate Scribe` to activate extension.
+3.  Search for `Restart Scribe` to restart extension.
+4.  Search for `Disable Scribe` to disable extension.
+5.  Customize settings in `settings.json` or through the UI:
+    ```json
+    "scribe.timerDurationMinutes": 30
+    ```
+             or
+    Open the Settings in VS Code and search for Scribe.
+    Set Timer Duration Minutes to any number (in minutes).
 
 ## License
 
