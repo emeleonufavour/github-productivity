@@ -14,6 +14,20 @@ Let your Github contribution graph reflect how long you code. Scribe is a VS Cod
 - **Command Integration:** Run commands to start, stop, or view coding sessions.
 - **Lightweight Design:** Minimal impact on system performance.
 
+# How to install the extension locally
+
+1. Download the extension from here (Extension link)[https://drive.google.com/file/d/1kBRRfXTAdFDkcZk9obNc0-XUhi1lUnjy/view?usp=sharing]
+
+2. Open Visual Studio Code.
+
+3. Go to the Extensions view (click on the Extensions icon in the Activity Bar on the side).
+
+4. Click on the three-dot menu (top right) and select Install from VSIX...
+
+5. Navigate to the location where you generated the .vsix file and select it.
+
+This will install the extension in your local VS Code environment
+
 ## How to Use
 
 1. Open the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`).
