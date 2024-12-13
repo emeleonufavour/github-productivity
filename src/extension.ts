@@ -1,15 +1,13 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
+// Import required modules
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
 
-
-let extensionName = 'Github-Productivity';
-let activityTimer: NodeJS.Timeout | undefined;
-let remainingTime = 30 * 60 * 1000; // 30 minutes in milliseconds
-let lastActivityTimestamp: number | undefined;
+let activityTimers: { [workspacePath: string]: NodeJS.Timeout | undefined } = {};
+let remainingTimes: { [workspacePath: string]: number } = {};
+let lastActivityTimestamps: { [workspacePath: string]: number | undefined } = {};
+let extensionName = "Github-Productivity";
 
 /**
  * Checks if Git is initialized in the current project folder.
@@ -17,9 +15,9 @@ let lastActivityTimestamp: number | undefined;
  * @returns True if Git is initialized, otherwise false.
  */
 function isGitInitialized(workspacePath: string): boolean {
-	const gitFolderPath = path.join(workspacePath, '.git');
-	return fs.existsSync(gitFolderPath) && fs.statSync(gitFolderPath).isDirectory();
-  }
+    const gitFolderPath = path.join(workspacePath, '.git');
+    return fs.existsSync(gitFolderPath) && fs.statSync(gitFolderPath).isDirectory();
+}
 
 /**
  * Executes a Git command in the workspace directory.
@@ -28,18 +26,19 @@ function isGitInitialized(workspacePath: string): boolean {
  * @returns A promise that resolves when the command is complete.
  */
 function executeGitCommand(command: string, workspacePath: string): Promise<void> {
-	return new Promise((resolve, reject) => {
-	  exec(command, { cwd: workspacePath }, (error, stdout, stderr) => {
-		if (error) {
-		  console.error(`Error executing command: ${command}`, stderr);
-		  reject(error);
-		} else {
-		  console.log(`Command executed: ${command}`, stdout);
-		  resolve();
-		}
-	  });
-	});
-  }
+    return new Promise((resolve, reject) => {
+        exec(command, { cwd: workspacePath }, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error executing command: ${command}`, stderr);
+				vscode.window.showErrorMessage(`Error executing command: ${command}`);
+                reject(error);
+            } else {
+                console.log(`Command executed: ${command}`, stdout);
+                resolve();
+            }
+        });
+    });
+}
 
 /**
  * Adds and commits the log file to the Git repository.
@@ -47,128 +46,156 @@ function executeGitCommand(command: string, workspacePath: string): Promise<void
  * @param workspacePath The path to the workspace folder.
  */
 async function commitLogFile(logFilePath: string, workspacePath: string) {
-	if (isGitInitialized(workspacePath)) {
-	  try {
-		// Stage the file
-		await executeGitCommand(`git add ${logFilePath}`, workspacePath);
-  
-		// Commit the file with a message
-		await executeGitCommand(
-		  `git commit -m "Log 30 minutes of coding activity"`,
-		  workspacePath
-		);
-  
-		vscode.window.showInformationMessage("Log file committed to Git successfully.");
-	  } catch (error) {
-		vscode.window.showErrorMessage("Failed to commit log file to Git.");
-	  }
-	} else {
-	  vscode.window.showWarningMessage("Git is not initialized. Log file was not committed.");
-	}
-  }
+    if (isGitInitialized(workspacePath)) {
+        try {
+            const commitMessage = `Log coding activity at ${new Date().toLocaleString()}`;
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
-	// Do not run extension if no workspace is opened
-	if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
-		vscode.window.showWarningMessage(
-		  `No workspace folder is open. ${extensionName} will not run.`
-		);
-		return; 
-	  }
+            await executeGitCommand(`git add ${logFilePath}`, workspacePath);
 
-	const workspacePath = vscode.workspace.workspaceFolders[0].uri.fsPath;
-  	const logFilePath = path.join(workspacePath, `${extensionName}-log.txt`);
+            await executeGitCommand(`git commit -m "${commitMessage}"`, workspacePath);
 
-  	vscode.window.showInformationMessage(`${extensionName} is now active!`);
-
-  	const startOrResumeTimer = () => {
-		// If a timer already exists, clear it
-		if (activityTimer) {
-		  clearTimeout(activityTimer);
-		}
-	
-		// Start a new timer for the remaining time
-		activityTimer = setTimeout(async () => {
-		  const message = `You spent 30 minutes coding as of ${new Date().toISOString()}\n`;
-	
-		  if (!fs.existsSync(logFilePath)) {
-			fs.writeFileSync(logFilePath, message, { flag: 'w' });
-			vscode.window.showInformationMessage(`Your log file has been created!`);
-			console.log('Log file created and initial message written.');
-		  } else {
-			fs.appendFileSync(logFilePath, message);
-			console.log('Message added to existing log file.');
-		  }
-
-		  // Commit the log file to Git
-		  await commitLogFile(logFilePath, workspacePath);
-	
-		  // Reset the remaining time for the next 30-minute period
-		  remainingTime = 30 * 60 * 1000;
-		  startOrResumeTimer();
-		}, remainingTime);
-	
-		// Record the start time of this period
-		lastActivityTimestamp = Date.now();
-	  };
-	
-	  const pauseTimer = () => {
-		if (activityTimer) {
-		  clearTimeout(activityTimer);
-		  activityTimer = undefined;
-		}
-	
-		// Update remaining time based on elapsed time since the last activity
-		if (lastActivityTimestamp) {
-		  const elapsedTime = Date.now() - lastActivityTimestamp;
-		  remainingTime = Math.max(remainingTime - elapsedTime, 0);
-		}
-	  };
-	
-	  const handleActivity = () => {
-		pauseTimer();
-		startOrResumeTimer();
-	  };
-	
-	
-	  const selectionChangeDisposable = vscode.window.onDidChangeTextEditorSelection(() => {
-		handleActivity();
-	  });
-	
-	  // This will listen for changes to the document
-	  const documentChangeDisposable = vscode.workspace.onDidChangeTextDocument(() => {
-		handleActivity();
-	  });
-	
-	  context.subscriptions.push(selectionChangeDisposable, documentChangeDisposable);
-	
-	  // Cleanup resources on deactivation
-	  context.subscriptions.push({
-		dispose: () => {
-		  pauseTimer();
-		},
-	  });
+            vscode.window.showInformationMessage("Log file committed to Git successfully.");
+        } catch (error) {
+            vscode.window.showErrorMessage("Failed to commit log file to Git.");
+        }
+    } else {
+        vscode.window.showWarningMessage("Git is not initialized. Log file was not committed.");
+    }
 }
 
-// This method is called when your extension is deactivated
+/**
+ * Handles activity tracking for a specific workspace folder.
+ * @param workspacePath The path to the workspace folder.
+ * @param logFilePath The path to the log file.
+ */
+function handleActivityTracking(workspacePath: string, logFilePath: string) {
+    const configuration = vscode.workspace.getConfiguration('githubProductivity');
+    const timerDuration = configuration.get<number>('timerDurationMinutes', 30) * 60 * 1000; 
+
+    const startOrResumeTimer = () => {
+        if (activityTimers[workspacePath]) {
+            clearTimeout(activityTimers[workspacePath]);
+        }
+
+        activityTimers[workspacePath] = setTimeout(async () => {
+            const message = `You spent ${timerDuration} minutes coding as of ${new Date().toISOString()}\n`;
+
+            if (!fs.existsSync(logFilePath)) {
+                fs.writeFileSync(logFilePath, message, { flag: 'w' });
+                vscode.window.showInformationMessage(`Your log file has been created!`);
+                console.log('Log file created and initial message written.');
+            } else {
+                fs.appendFileSync(logFilePath, message);
+                console.log('Message added to existing log file.');
+            }
+
+            await commitLogFile(logFilePath, workspacePath);
+
+            // Reset the remaining time for the next period
+            remainingTimes[workspacePath] = timerDuration;
+            startOrResumeTimer();
+        }, remainingTimes[workspacePath]);
+
+        lastActivityTimestamps[workspacePath] = Date.now();
+    };
+
+    const pauseTimer = () => {
+        if (activityTimers[workspacePath]) {
+            clearTimeout(activityTimers[workspacePath]);
+            activityTimers[workspacePath] = undefined;
+        }
+
+        if (lastActivityTimestamps[workspacePath]) {
+            const elapsedTime = Date.now() - lastActivityTimestamps[workspacePath]!;
+            remainingTimes[workspacePath] = Math.max(remainingTimes[workspacePath] - elapsedTime, 0);
+        }
+    };
+
+    const handleActivity = () => {
+        pauseTimer();
+        startOrResumeTimer();
+    };
+
+    vscode.window.onDidChangeTextEditorSelection(handleActivity);
+    vscode.workspace.onDidChangeTextDocument(handleActivity);
+
+    // Initialize the timer and remaining time
+    remainingTimes[workspacePath] = timerDuration;
+    startOrResumeTimer();
+}
+
+export function activate(context: vscode.ExtensionContext) {
+    if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
+        vscode.window.showWarningMessage(
+            `No workspace folder is open. ${extensionName} will not run.`
+        );
+        return;
+    }
+
+     const activateCommand = vscode.commands.registerCommand(
+        "github-productivity.activate",
+        () => {
+            vscode.window.showInformationMessage(`${extensionName} is already active.`);
+        }
+    );
+
+    const restartCommand = vscode.commands.registerCommand(
+        "github-productivity.restart",
+        () => {
+            deactivate(); 
+            vscode.window.showInformationMessage(`${extensionName} is restarting...`);
+            activate(context); 
+        }
+    );
+
+    const disableCommand = vscode.commands.registerCommand(
+        "github-productivity.disable",
+        () => {
+            deactivate(); 
+            vscode.window.showInformationMessage(`${extensionName} is now disabled.`);
+        }
+    );
+
+    for (const folder of vscode.workspace.workspaceFolders) {
+        const workspacePath = folder.uri.fsPath;
+        const logFilePath = path.join(workspacePath, `${extensionName}-log.txt`);
+
+        handleActivityTracking(workspacePath, logFilePath);
+    }
+
+    context.subscriptions.push(activateCommand, restartCommand, disableCommand);
+
+    context.subscriptions.push({
+        dispose: () => {
+            for (const workspacePath in activityTimers) {
+                if (activityTimers[workspacePath]) {
+                    clearTimeout(activityTimers[workspacePath]);
+                }
+            }
+        },
+    });
+}
+
 export function deactivate() {
-	if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
-		return;
-	  }
-	
-	  const logFilePath = path.join(
-		vscode.workspace.workspaceFolders[0].uri.fsPath,
-		'coding-time-log.txt'
-	  );
-	
-	  if (fs.existsSync(logFilePath)) {
-		try {
-		  fs.unlinkSync(logFilePath);
-		  console.log('Log file deleted successfully.');
-		} catch (error) {
-		  console.error('Error deleting log file:', error);
-		}
-	  }
+    if (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0) {
+        for (const folder of vscode.workspace.workspaceFolders) {
+            const workspacePath = folder.uri.fsPath;
+            const logFilePath = path.join(workspacePath, `${extensionName}-log.txt`);
+
+            if (fs.existsSync(logFilePath)) {
+                if (isGitInitialized(workspacePath)) {
+                    vscode.window.showWarningMessage(
+                        `Log file not deleted because it has not been committed.`
+                    );
+                } else {
+                    try {
+                        fs.unlinkSync(logFilePath);
+                        console.log('Log file deleted successfully.');
+                    } catch (error) {
+                        console.error('Error deleting log file:', error);
+                    }
+                }
+            }
+        }
+    }
 }

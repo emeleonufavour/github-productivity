@@ -2,7 +2,7 @@
 
 ## Overview
 
-Github Productivity is a VS Code extension that helps track your coding activity with integrated GitHub support. It allows you to:
+Let your Github contribution graph reflect how long you code. Github Productivity is a VS Code extension that helps track your coding activity. It allows you to:
 
 - Set a timer for coding sessions.
 - Log your coding activity duration.
@@ -17,8 +17,10 @@ Github Productivity is a VS Code extension that helps track your coding activity
 ## How to Use
 
 1. Open the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`).
-2. Search for `Hello World` (or replace this with your real command name).
-3. Customize settings in `settings.json` or through the UI:
+2. Search for `Activate GitHub Productivity` to activate extension.
+3. Search for `Restart GitHub Productivity` to restart extension.
+4. Search for `Disable GitHub Productivity` to disable extension.
+5. Customize settings in `settings.json` or through the UI:
    ```json
    "githubProductivity.timerDurationMinutes": 30
    ```

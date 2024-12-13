@@ -1,23 +1,49 @@
 {
   "name": "github-productivity",
-  "displayName": "Github productivity",
-  "description": "",
+  "displayName": "Github Productivity",
+  "description": "A VS Code extension for tracking coding activity with Git integration.",
   "version": "0.0.1",
+  "publisher": "favouremeleonu",
   "engines": {
     "vscode": "^1.96.0"
   },
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "github-productivity.helloWorld",
         "title": "Hello World"
+      },
+      {
+        "command": "github-productivity.activate",
+        "title": "Activate GitHub Productivity"
+      },
+      {
+          "command": "github-productivity.restart",
+          "title": "Restart GitHub Productivity"
+      },
+      {
+          "command": "github-productivity.disable",
+          "title": "Disable GitHub Productivity"
       }
-    ]
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Github Productivity",
+      "properties": {
+        "githubProductivity.timerDurationMinutes": {
+          "type": "number",
+          "default": 30,
+          "description": "The timer duration in minutes for logging coding activity."
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
