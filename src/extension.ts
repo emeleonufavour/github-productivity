@@ -3,76 +3,172 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import { exec } from 'child_process';
 
-let activeCodingTime = 0
-let isUserActive = false;
-let interval: NodeJS.Timer
 
-// Path to the log file
-const logFilePath = path.join(__dirname, 'coding-time-log.txt');
+let extensionName = 'Github-Productivity';
+let activityTimer: NodeJS.Timeout | undefined;
+let remainingTime = 30 * 60 * 1000; // 30 minutes in milliseconds
+let lastActivityTimestamp: number | undefined;
+
+/**
+ * Checks if Git is initialized in the current project folder.
+ * @param workspacePath The path to the current workspace folder.
+ * @returns True if Git is initialized, otherwise false.
+ */
+function isGitInitialized(workspacePath: string): boolean {
+	const gitFolderPath = path.join(workspacePath, '.git');
+	return fs.existsSync(gitFolderPath) && fs.statSync(gitFolderPath).isDirectory();
+  }
+
+/**
+ * Executes a Git command in the workspace directory.
+ * @param command The Git command to execute.
+ * @param workspacePath The path to the workspace folder.
+ * @returns A promise that resolves when the command is complete.
+ */
+function executeGitCommand(command: string, workspacePath: string): Promise<void> {
+	return new Promise((resolve, reject) => {
+	  exec(command, { cwd: workspacePath }, (error, stdout, stderr) => {
+		if (error) {
+		  console.error(`Error executing command: ${command}`, stderr);
+		  reject(error);
+		} else {
+		  console.log(`Command executed: ${command}`, stdout);
+		  resolve();
+		}
+	  });
+	});
+  }
+
+/**
+ * Adds and commits the log file to the Git repository.
+ * @param logFilePath The path to the log file.
+ * @param workspacePath The path to the workspace folder.
+ */
+async function commitLogFile(logFilePath: string, workspacePath: string) {
+	if (isGitInitialized(workspacePath)) {
+	  try {
+		// Stage the file
+		await executeGitCommand(`git add ${logFilePath}`, workspacePath);
+  
+		// Commit the file with a message
+		await executeGitCommand(
+		  `git commit -m "Log 30 minutes of coding activity"`,
+		  workspacePath
+		);
+  
+		vscode.window.showInformationMessage("Log file committed to Git successfully.");
+	  } catch (error) {
+		vscode.window.showErrorMessage("Failed to commit log file to Git.");
+	  }
+	} else {
+	  vscode.window.showWarningMessage("Git is not initialized. Log file was not committed.");
+	}
+  }
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+	// Do not run extension if no workspace is opened
+	if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
+		vscode.window.showWarningMessage(
+		  `No workspace folder is open. ${extensionName} will not run.`
+		);
+		return; 
+	  }
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "github-productivity" is now active!');
+	const workspacePath = vscode.workspace.workspaceFolders[0].uri.fsPath;
+  	const logFilePath = path.join(workspacePath, `${extensionName}-log.txt`);
 
-	vscode.window.onDidChangeTextEditorSelection(onUserActivity, null, context.subscriptions);
-	vscode.workspace.onDidChangeTextDocument(onUserActivity, null, context.subscriptions);
+  	vscode.window.showInformationMessage(`${extensionName} is now active!`);
 
-	// Start interval to check and write coding time every minute
-	interval = setInterval(() => {
-		if (isUserActive) {
-		  activeCodingTime += 60; // Increment by 60 seconds (1 minute)
-	
-		  if (activeCodingTime >= 30 * 60) {
-			writeToFile();
-			activeCodingTime = 0; // Reset after writing
-		  }
+  	const startOrResumeTimer = () => {
+		// If a timer already exists, clear it
+		if (activityTimer) {
+		  clearTimeout(activityTimer);
 		}
-	  }, 60 * 1000);
+	
+		// Start a new timer for the remaining time
+		activityTimer = setTimeout(async () => {
+		  const message = `You spent 30 minutes coding as of ${new Date().toISOString()}\n`;
+	
+		  if (!fs.existsSync(logFilePath)) {
+			fs.writeFileSync(logFilePath, message, { flag: 'w' });
+			vscode.window.showInformationMessage(`Your log file has been created!`);
+			console.log('Log file created and initial message written.');
+		  } else {
+			fs.appendFileSync(logFilePath, message);
+			console.log('Message added to existing log file.');
+		  }
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('github-productivity.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from Github productivity!');
-	});
-
-	context.subscriptions.push(disposable);
+		  // Commit the log file to Git
+		  await commitLogFile(logFilePath, workspacePath);
+	
+		  // Reset the remaining time for the next 30-minute period
+		  remainingTime = 30 * 60 * 1000;
+		  startOrResumeTimer();
+		}, remainingTime);
+	
+		// Record the start time of this period
+		lastActivityTimestamp = Date.now();
+	  };
+	
+	  const pauseTimer = () => {
+		if (activityTimer) {
+		  clearTimeout(activityTimer);
+		  activityTimer = undefined;
+		}
+	
+		// Update remaining time based on elapsed time since the last activity
+		if (lastActivityTimestamp) {
+		  const elapsedTime = Date.now() - lastActivityTimestamp;
+		  remainingTime = Math.max(remainingTime - elapsedTime, 0);
+		}
+	  };
+	
+	  const handleActivity = () => {
+		pauseTimer();
+		startOrResumeTimer();
+	  };
+	
+	
+	  const selectionChangeDisposable = vscode.window.onDidChangeTextEditorSelection(() => {
+		handleActivity();
+	  });
+	
+	  // This will listen for changes to the document
+	  const documentChangeDisposable = vscode.workspace.onDidChangeTextDocument(() => {
+		handleActivity();
+	  });
+	
+	  context.subscriptions.push(selectionChangeDisposable, documentChangeDisposable);
+	
+	  // Cleanup resources on deactivation
+	  context.subscriptions.push({
+		dispose: () => {
+		  pauseTimer();
+		},
+	  });
 }
-
-/**
- * Detect user activity
- */
-function onUserActivity() {
-	isUserActive = true;
-  }
-
-/**
- * Write the accumulated coding time to a file
- */
-function writeToFile() {
-	const message = `User has spent 30 minutes coding as of ${new Date().toISOString()}\n`;
-  
-	// Check if the file exists
-	if (!fs.existsSync(logFilePath)) {
-	  // Create the file if it doesn't exist
-	  fs.writeFileSync(logFilePath, message, { flag: 'w' }); // 'w' ensures the file is created
-	  vscode.window.showInformationMessage('Your log file has been created!');
-	  console.log('Your log file has been created!');
-	} else {
-	  // Append to the file if it exists
-	  fs.appendFileSync(logFilePath, message); // Append without overwriting
-	  console.log('Message appended to existing log file.');
-	}
-  }
 
 // This method is called when your extension is deactivated
 export function deactivate() {
+	if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
+		return;
+	  }
 	
+	  const logFilePath = path.join(
+		vscode.workspace.workspaceFolders[0].uri.fsPath,
+		'coding-time-log.txt'
+	  );
+	
+	  if (fs.existsSync(logFilePath)) {
+		try {
+		  fs.unlinkSync(logFilePath);
+		  console.log('Log file deleted successfully.');
+		} catch (error) {
+		  console.error('Error deleting log file:', error);
+		}
+	  }
 }
