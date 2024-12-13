@@ -7,7 +7,7 @@ import { exec } from 'child_process';
 let activityTimers: { [workspacePath: string]: NodeJS.Timeout | undefined } = {};
 let remainingTimes: { [workspacePath: string]: number } = {};
 let lastActivityTimestamps: { [workspacePath: string]: number | undefined } = {};
-let extensionName = "Github-Productivity";
+let extensionName = "scribe";
 
 /**
  * Checks if Git is initialized in the current project folder.
@@ -69,7 +69,7 @@ async function commitLogFile(logFilePath: string, workspacePath: string) {
  * @param logFilePath The path to the log file.
  */
 function handleActivityTracking(workspacePath: string, logFilePath: string) {
-    const configuration = vscode.workspace.getConfiguration('githubProductivity');
+    const configuration = vscode.workspace.getConfiguration(extensionName);
     const timerDuration = configuration.get<number>('timerDurationMinutes', 30) * 60 * 1000; 
 
     const startOrResumeTimer = () => {
@@ -133,14 +133,14 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
      const activateCommand = vscode.commands.registerCommand(
-        "github-productivity.activate",
+        `${extensionName}.activate`,
         () => {
             vscode.window.showInformationMessage(`${extensionName} is already active.`);
         }
     );
 
     const restartCommand = vscode.commands.registerCommand(
-        "github-productivity.restart",
+        `${extensionName}.restart`,
         () => {
             deactivate(); 
             vscode.window.showInformationMessage(`${extensionName} is restarting...`);
@@ -149,7 +149,7 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     const disableCommand = vscode.commands.registerCommand(
-        "github-productivity.disable",
+        `${extensionName}.disable`,
         () => {
             deactivate(); 
             vscode.window.showInformationMessage(`${extensionName} is now disabled.`);

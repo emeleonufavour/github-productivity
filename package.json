@@ -1,7 +1,7 @@
 {
-  "name": "github-productivity",
-  "displayName": "Github Productivity",
-  "description": "A VS Code extension for tracking coding activity with Git integration.",
+  "name": "scribe",
+  "displayName": "Scribe",
+  "description": "Let your Github contribution graph reflect how long you code. Scribe is a VS Code extension that helps track your coding activity",
   "version": "0.0.1",
   "publisher": "favouremeleonu",
   "engines": {
@@ -17,27 +17,27 @@
   "contributes": {
     "commands": [
       {
-        "command": "github-productivity.helloWorld",
+        "command": "scribe.helloWorld",
         "title": "Hello World"
       },
       {
-        "command": "github-productivity.activate",
-        "title": "Activate GitHub Productivity"
+        "command": "scribe.activate",
+        "title": "Activate Scribe"
       },
       {
-          "command": "github-productivity.restart",
-          "title": "Restart GitHub Productivity"
+          "command": "scribe.restart",
+          "title": "Restart Scribe"
       },
       {
-          "command": "github-productivity.disable",
-          "title": "Disable GitHub Productivity"
+          "command": "scribe.disable",
+          "title": "Disable Scribe"
       }
     ],
     "configuration": {
       "type": "object",
-      "title": "Github Productivity",
+      "title": "Scribe",
       "properties": {
-        "githubProductivity.timerDurationMinutes": {
+        "scribe.timerDurationMinutes": {
           "type": "number",
           "default": 30,
           "description": "The timer duration in minutes for logging coding activity."
