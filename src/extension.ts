@@ -1,4 +1,3 @@
-// Import required modules
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -119,7 +118,6 @@ function handleActivityTracking(workspacePath: string, logFilePath: string) {
     vscode.window.onDidChangeTextEditorSelection(handleActivity);
     vscode.workspace.onDidChangeTextDocument(handleActivity);
 
-    // Initialize the timer and remaining time
     remainingTimes[workspacePath] = timerDuration;
     startOrResumeTimer();
 }
