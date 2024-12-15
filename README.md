@@ -16,7 +16,7 @@ Let your Github contribution graph reflect how long you code. Scribe is a VS Cod
 
 # How to install the extension locally
 
-1. Download the extension from here [Extension link](https://drive.google.com/file/d/1kBRRfXTAdFDkcZk9obNc0-XUhi1lUnjy/view?usp=sharing)
+1. Download the extension from here [Extension link](https://drive.google.com/file/d/19F-cwNVJpuF9cQYHyCNo2L_-M_EaySEa/view?usp=sharing)
 
 2. Open Visual Studio Code.
 
