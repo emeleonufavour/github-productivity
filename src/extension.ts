@@ -77,7 +77,7 @@ function handleActivityTracking(workspacePath: string, logFilePath: string) {
         }
 
         activityTimers[workspacePath] = setTimeout(async () => {
-            const message = `You spent ${timerDuration} minutes coding as of ${new Date().toISOString()}\n`;
+            const message = `You spent ${timerDuration / (1000 * 60)} minutes coding as of ${new Date().toISOString()}\n`;
 
             if (!fs.existsSync(logFilePath)) {
                 fs.writeFileSync(logFilePath, message, { flag: 'w' });
